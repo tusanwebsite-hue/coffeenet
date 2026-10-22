@@ -16,6 +16,7 @@ import { NewsView } from './views/NewsView';
 import { BookmarksView } from './views/BookmarksView';
 import { SettingsView } from './views/SettingsView';
 import { AdminView } from './views/AdminView';
+import { WorkspaceView } from './views/WorkspaceView';
 
 import {
   RegistrationOpportunity,
@@ -341,6 +342,8 @@ export default function App() {
               onSelectRegistration={handleQuickGenerateContent}
             />
           )}
+
+          {currentTab === 'workspace' && <WorkspaceView />}
 
           {currentTab === 'settings' && (
             <SettingsView settings={settings} onUpdateSettings={handleUpdateSettings} />
