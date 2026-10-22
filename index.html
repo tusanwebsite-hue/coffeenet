@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>کافی‌نت پلاس | سامانه جامع صنف کافی‌نت و پیشخوان دولت</title>
+    <meta name="description" content="داشبورد تخصصی ثبت‌نام‌های اینترنتی فعال، پایش زنده وضعیت سامانه‌های دولتی، استودیو تولید محتوای گرافیکی و ویدئویی و ابزارهای اختصاصی دفاتر پیشخوان" />
+    <meta property="og:title" content="کافی‌نت پلاس | سامانه جامع صنف کافی‌نت و پیشخوان دولت" />
+    <meta property="og:description" content="داشبورد تخصصی ثبت‌نام‌های اینترنتی فعال، پایش زنده وضعیت سامانه‌های دولتی، استودیو تولید محتوای گرافیکی و ویدئویی و ابزارهای اختصاصی دفاتر پیشخوان" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script>
+      // Gracefully handle Vite dev HMR websocket notices in cloud proxy environments
+      window.addEventListener('unhandledrejection', function(event) {
+        if (
+          event.reason &&
+          ((event.reason.message && event.reason.message.includes('WebSocket')) ||
+           (event.reason.stack && event.reason.stack.includes('@vite/client')))
+        ) {
+          event.preventDefault();
+        }
+      });
+      window.addEventListener('error', function(event) {
+        if (
+          (event.message && event.message.includes('WebSocket')) ||
+          (event.filename && event.filename.includes('@vite/client'))
+        ) {
+          event.preventDefault();
+        }
+      });
+    </script>
+    <!-- Vazirmatn Font CDN -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  </head>
+  <body class="bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 font-sans antialiased selection:bg-emerald-500 selection:text-white">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
