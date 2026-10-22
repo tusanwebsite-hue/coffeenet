@@ -11,6 +11,7 @@ import {
   Settings,
   ShieldAlert,
   Sparkles,
+  UserRound,
   X
 } from 'lucide-react';
 
@@ -24,6 +25,7 @@ export type NavTabId =
   | 'news'
   | 'bookmarks'
   | 'settings'
+  | 'workspace'
   | 'admin';
 
 interface SidebarProps {
@@ -103,6 +105,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: Bookmark,
       badge: bookmarksCount > 0 ? `${bookmarksCount}` : null,
       badgeColor: 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300',
+    },
+    {
+      id: 'workspace' as NavTabId,
+      label: 'فضای کاربری و پروفایل AI',
+      icon: UserRound,
+      badge: 'حساب من',
+      badgeColor: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 text-[10px]',
     },
     {
       id: 'settings' as NavTabId,
