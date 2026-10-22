@@ -92,18 +92,33 @@ export default function App() {
     const loadWorkspace = async (userId: string | null) => {
       setWorkspaceLoaded(false);
       setWorkspaceUserId(userId);
-      if (!userId) { if (alive) setWorkspaceLoaded(true); return; }
+      if (!userId) {
+        if (alive) {
+          setSettings(INITIAL_USER_SETTINGS);
+          setSavedDrafts([]);
+          setRegistrations(prev => prev.map(item => ({ ...item, isBookmarked: false })));
+          setLinks(prev => prev.map(item => ({ ...item, isFavorite: false })));
+          setWorkspaceSyncMessage('برای همگام‌سازی اطلاعات شخصی وارد حساب خود شوید.');
+          setWorkspaceLoaded(true);
+        }
+        return;
+      }
       try {
         const { data, error } = await supabase.from('user_workspaces').select('settings,drafts,bookmarked_registration_ids,favorite_link_ids').eq('user_id', userId).maybeSingle();
         if (error) throw error;
         if (!alive) return;
         if (data) {
-          if (data.settings && Object.keys(data.settings).length) setSettings(prev => ({ ...prev, ...data.settings }));
-          if (Array.isArray(data.drafts)) setSavedDrafts(data.drafts as ContentDraft[]);
+          setSettings({ ...INITIAL_USER_SETTINGS, ...(data.settings || {}) });
+          setSavedDrafts(Array.isArray(data.drafts) ? data.drafts as ContentDraft[] : []);
           const bookmarked = new Set<string>(data.bookmarked_registration_ids || []);
           const favorites = new Set<string>(data.favorite_link_ids || []);
           setRegistrations(prev => prev.map(item => ({ ...item, isBookmarked: bookmarked.has(item.id) })));
           setLinks(prev => prev.map(item => ({ ...item, isFavorite: favorites.has(item.id) })));
+        } else {
+          setSettings(INITIAL_USER_SETTINGS);
+          setSavedDrafts([]);
+          setRegistrations(prev => prev.map(item => ({ ...item, isBookmarked: false })));
+          setLinks(prev => prev.map(item => ({ ...item, isFavorite: false })));
         }
         setWorkspaceSyncMessage('اطلاعات شخصی به فضای ابری متصل است.');
       } catch (error) {
