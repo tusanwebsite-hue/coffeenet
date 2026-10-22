@@ -16,6 +16,8 @@ import { NewsView } from './views/NewsView';
 import { BookmarksView } from './views/BookmarksView';
 import { SettingsView } from './views/SettingsView';
 import { AdminView } from './views/AdminView';
+import { supabase } from './lib/supabase';
+import { WorkspaceView } from './views/WorkspaceView';
 
 import {
   RegistrationOpportunity,
@@ -78,6 +80,73 @@ export default function App() {
       }
     ];
   });
+
+  // Cloud workspace sync: only personal settings, drafts and saved IDs are user-scoped.
+  const [workspaceUserId, setWorkspaceUserId] = useState<string | null>(null);
+  const [workspaceLoaded, setWorkspaceLoaded] = useState(false);
+  const [workspaceSyncMessage, setWorkspaceSyncMessage] = useState('');
+
+  useEffect(() => {
+    if (!supabase) { setWorkspaceLoaded(true); return; }
+    let alive = true;
+    const loadWorkspace = async (userId: string | null) => {
+      setWorkspaceLoaded(false);
+      setWorkspaceUserId(userId);
+      if (!userId) {
+        if (alive) {
+          setSettings(INITIAL_USER_SETTINGS);
+          setSavedDrafts([]);
+          setRegistrations(prev => prev.map(item => ({ ...item, isBookmarked: false })));
+          setLinks(prev => prev.map(item => ({ ...item, isFavorite: false })));
+          setWorkspaceSyncMessage('برای همگام‌سازی اطلاعات شخصی وارد حساب خود شوید.');
+          setWorkspaceLoaded(true);
+        }
+        return;
+      }
+      try {
+        const { data, error } = await supabase.from('user_workspaces').select('settings,drafts,bookmarked_registration_ids,favorite_link_ids').eq('user_id', userId).maybeSingle();
+        if (error) throw error;
+        if (!alive) return;
+        if (data) {
+          setSettings({ ...INITIAL_USER_SETTINGS, ...(data.settings || {}) });
+          setSavedDrafts(Array.isArray(data.drafts) ? data.drafts as ContentDraft[] : []);
+          const bookmarked = new Set<string>(data.bookmarked_registration_ids || []);
+          const favorites = new Set<string>(data.favorite_link_ids || []);
+          setRegistrations(prev => prev.map(item => ({ ...item, isBookmarked: bookmarked.has(item.id) })));
+          setLinks(prev => prev.map(item => ({ ...item, isFavorite: favorites.has(item.id) })));
+        } else {
+          setSettings(INITIAL_USER_SETTINGS);
+          setSavedDrafts([]);
+          setRegistrations(prev => prev.map(item => ({ ...item, isBookmarked: false })));
+          setLinks(prev => prev.map(item => ({ ...item, isFavorite: false })));
+        }
+        setWorkspaceSyncMessage('اطلاعات شخصی به فضای ابری متصل است.');
+      } catch (error) {
+        if (alive) setWorkspaceSyncMessage('همگام‌سازی فضای کاربری انجام نشد؛ تنظیمات اتصال Supabase و اجرای مهاجرت دیتابیس را بررسی کنید.');
+      } finally { if (alive) setWorkspaceLoaded(true); }
+    };
+    supabase.auth.getSession().then(({ data }) => loadWorkspace(data.session?.user.id || null)).catch(() => { if (alive) setWorkspaceLoaded(true); });
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => { void loadWorkspace(session?.user.id || null); });
+    return () => { alive = false; listener.subscription.unsubscribe(); };
+  }, []);
+
+  useEffect(() => {
+    if (!supabase || !workspaceUserId || !workspaceLoaded) return;
+    const saveWorkspace = async () => {
+      const payload = {
+        user_id: workspaceUserId,
+        settings,
+        drafts: savedDrafts,
+        bookmarked_registration_ids: registrations.filter(item => item.isBookmarked).map(item => item.id),
+        favorite_link_ids: links.filter(item => item.isFavorite).map(item => item.id),
+        updated_at: new Date().toISOString(),
+      };
+      const { error } = await supabase.from('user_workspaces').upsert(payload, { onConflict: 'user_id' });
+      if (error) setWorkspaceSyncMessage('ذخیره ابری ناموفق بود. لطفاً اجرای مهاجرت user_workspaces و سیاست‌های RLS را بررسی کنید.');
+      else setWorkspaceSyncMessage('تغییرات فضای کاربری در حساب شما ذخیره شد.');
+    };
+    void saveWorkspace();
+  }, [workspaceUserId, workspaceLoaded, settings, savedDrafts, registrations, links]);
 
   // Cross-view handover states
   const [studioPreset, setStudioPreset] = useState<{ title?: string; organization?: string; deadline?: string } | undefined>(undefined);
@@ -341,6 +410,8 @@ export default function App() {
               onSelectRegistration={handleQuickGenerateContent}
             />
           )}
+
+          {currentTab === 'workspace' && <WorkspaceView />}
 
           {currentTab === 'settings' && (
             <SettingsView settings={settings} onUpdateSettings={handleUpdateSettings} />

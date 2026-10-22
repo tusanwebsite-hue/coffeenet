@@ -25,6 +25,7 @@ import {
 import { RegistrationOpportunity, UserCafeSettings, ContentDraft } from '../types';
 import { generateOfflineContent, OFFLINE_CONTENT_TEMPLATES } from '../utils/contentTemplates';
 import { getDeadlineStatus } from '../utils/dateUtils';
+import { supabase } from '../lib/supabase';
 
 interface ContentGeneratorViewProps {
   settings: UserCafeSettings;
@@ -115,7 +116,7 @@ export const ContentGeneratorView: React.FC<ContentGeneratorViewProps> = ({
 
     // 2. Gemini AI Mode (Server-side API Call)
     try {
-      const prompt = `یک متن جذاب، دقیق و حرفه‌ای برای ${channel} آماده کن.
+      let prompt = `یک متن جذاب، دقیق و حرفه‌ای برای ${channel} آماده کن.
 عنوان موضوع: ${title}
 سازمان مجری: ${org}
 مهلت رسمی: ${deadline}
@@ -124,6 +125,23 @@ export const ContentGeneratorView: React.FC<ContentGeneratorViewProps> = ({
 کلمات کلیدی: ${keywords}
 اطلاعات تماس کافی‌نت: نام ${settings.cafeName}، تلفن ${settings.phone}، آدرس ${settings.address}
 لحن درخواستی: ${tone}`;
+
+      // Load this authenticated user's AI profile; RLS ensures users can only read their own row.
+      if (supabase) {
+        const { data: authData } = await supabase.auth.getUser();
+        const user = authData.user;
+        if (user) {
+          const { data: aiProfile, error: profileError } = await supabase
+            .from('user_ai_profiles')
+            .select('display_name,cafe_name,phone,ai_instructions,preferred_tone,preferred_channel')
+            .eq('user_id', user.id)
+            .maybeSingle();
+          if (profileError) throw new Error('بارگذاری پروفایل هوش مصنوعی ناموفق بود. ابتدا تنظیمات فضای کاربری را بررسی کنید.');
+          if (aiProfile) {
+            prompt += `\n\nتنظیمات اختصاصی صاحب حساب (بر تنظیمات عمومی اولویت دارد):\nنام نمایشی: ${aiProfile.display_name || ''}\nنام کسب‌وکار: ${aiProfile.cafe_name || settings.cafeName}\nتلفن کسب‌وکار: ${aiProfile.phone || settings.phone}\nلحن ترجیحی: ${aiProfile.preferred_tone || tone}\nکانال ترجیحی: ${aiProfile.preferred_channel || channel}\nدستورالعمل اختصاصی: ${aiProfile.ai_instructions || 'بدون دستورالعمل اضافی'}\nاز این تنظیمات برای شخصی‌سازی متن استفاده کن؛ هیچ تاریخ، مبلغ یا ادعای رسمی تأییدنشده‌ای اختراع نکن.`;
+          }
+        }
+      }
 
       const res = await fetch('/api/gemini/generate', {
         method: 'POST',
